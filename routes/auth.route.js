@@ -20,7 +20,7 @@ const authController = new AuthController();
 // Rate limiting for auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
+  max: 500000, // limit each IP to 5 requests per windowMs
   message: {
     status: 'error',
     message: 'Too many authentication attempts, please try again later.'
@@ -31,7 +31,7 @@ const authLimiter = rateLimit({
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 login attempts per windowMs
+  max: 500000, // limit each IP to 5 login attempts per windowMs
   message: {
     status: 'error',
     message: 'Too many login attempts, please try again later.'
