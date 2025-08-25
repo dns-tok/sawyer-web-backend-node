@@ -1,0 +1,842 @@
+{
+  "info": {
+    "name": "Swayer AI Backend API",
+    "description": "Complete API collection for Swayer AI Backend with response handler integration",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "chatId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.tokens) {",
+                  "        pm.collectionVariables.set('accessToken', response.data.tokens.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', response.data.tokens.refreshToken);",
+                  "        pm.collectionVariables.set('userId', response.data.user._id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"SecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.tokens) {",
+                  "        pm.collectionVariables.set('accessToken', response.data.tokens.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', response.data.tokens.refreshToken);",
+                  "        pm.collectionVariables.set('userId', response.data.user._id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"SecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.tokens) {",
+                  "        pm.collectionVariables.set('accessToken', response.data.tokens.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', response.data.tokens.refreshToken);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "forgot-password"]
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"reset_token_here\",\n  \"password\": \"NewSecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "reset-password"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"SecurePassword123!\",\n  \"newPassword\": \"NewSecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "change-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Updated\",\n  \"preferences\": {\n    \"theme\": \"dark\",\n    \"notifications\": {\n      \"email\": true,\n      \"push\": false\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Get User Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Delete User Account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/account",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "account"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "API Keys Management",
+      "item": [
+        {
+          "name": "Validate API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"openai\",\n  \"apiKey\": \"sk-your-openai-api-key-here\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/api-keys/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "api-keys", "validate"]
+            }
+          }
+        },
+        {
+          "name": "Save API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"openai\",\n  \"apiKey\": \"sk-your-openai-api-key-here\",\n  \"keyName\": \"My OpenAI Key\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/api-keys",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "api-keys"]
+            }
+          }
+        },
+        {
+          "name": "Get All API Keys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/api-keys",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "api-keys"]
+            }
+          }
+        },
+        {
+          "name": "Get API Key by Provider",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/api-keys/openai",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "api-keys", "openai"]
+            }
+          }
+        },
+        {
+          "name": "Delete API Key",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/api-keys/openai",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "api-keys", "openai"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat Management",
+      "item": [
+        {
+          "name": "Get All Chats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat"]
+            }
+          }
+        },
+        {
+          "name": "Create New Chat",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.chat) {",
+                  "        pm.collectionVariables.set('chatId', response.data.chat._id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"My New Chat\",\n  \"selectedModel\": {\n    \"id\": \"gpt-3.5-turbo\",\n    \"name\": \"GPT-3.5 Turbo\",\n    \"provider\": \"openai\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat"]
+            }
+          }
+        },
+        {
+          "name": "Get Chat by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/{{chatId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "{{chatId}}"]
+            }
+          }
+        },
+        {
+          "name": "Send Message to Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hello, how can you help me today?\",\n  \"model\": {\n    \"id\": \"gpt-3.5-turbo\",\n    \"name\": \"GPT-3.5 Turbo\",\n    \"provider\": \"openai\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/{{chatId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "{{chatId}}", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Get Available Models",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/models/available",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "models", "available"]
+            }
+          }
+        },
+        {
+          "name": "Delete Chat",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/{{chatId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "{{chatId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integrations",
+      "item": [
+        {
+          "name": "Get MCP Servers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations/mcp-servers?status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "integrations", "mcp-servers"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status (active, all)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get MCP Server by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations/mcp-servers/notion",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "integrations", "mcp-servers", "notion"]
+            }
+          }
+        },
+        {
+          "name": "Get API Providers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations/api-providers?status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "integrations", "api-providers"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status (active, all)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get API Provider by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations/api-providers/openai",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "integrations", "api-providers", "openai"]
+            }
+          }
+        },
+        {
+          "name": "Get Integration Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "integrations", "categories"]
+            }
+          }
+        },
+        {
+          "name": "Get Integrations by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations/categories/productivity",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "integrations", "categories", "productivity"]
+            }
+          }
+        },
+        {
+          "name": "Get Integrations Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations/overview",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "integrations", "overview"]
+            }
+          }
+        },
+        {
+          "name": "Search Integrations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations/search?q=notion&type=mcp-servers&status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "integrations", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "notion",
+                  "description": "Search query"
+                },
+                {
+                  "key": "type",
+                  "value": "mcp-servers",
+                  "description": "Type filter (mcp-servers, api-providers)"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Status filter"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get OAuth Config for MCP Server",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations/mcp-servers/notion/oauth-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "integrations", "mcp-servers", "notion", "oauth-config"]
+            }
+          }
+        },
+        {
+          "name": "Get Connected Integrations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/integrations/connected",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "integrations", "connected"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Integrations",
+      "item": [
+        {
+          "name": "Get User Integrations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user-integrations?type=mcp_server&status=connected",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user-integrations"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "mcp_server",
+                  "description": "Filter by integration type"
+                },
+                {
+                  "key": "status",
+                  "value": "connected",
+                  "description": "Filter by status"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Integration by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user-integrations/integration-id-here",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user-integrations", "integration-id-here"]
+            }
+          }
+        },
+        {
+          "name": "Connect Integration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"integrationId\": \"notion\",\n  \"integrationType\": \"mcp_server\",\n  \"connectionData\": {\n    \"accessToken\": \"notion_access_token_here\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user-integrations/connect",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user-integrations", "connect"]
+            }
+          }
+        },
+        {
+          "name": "Disconnect Integration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"integrationId\": \"integration-id-here\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user-integrations/disconnect",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user-integrations", "disconnect"]
+            }
+          }
+        },
+        {
+          "name": "Test Integration Connection",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"integrationId\": \"integration-id-here\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user-integrations/test-connection",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user-integrations", "test-connection"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Examples",
+      "item": [
+        {
+          "name": "404 - Route Not Found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/non-existent-route",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "non-existent-route"]
+            }
+          }
+        },
+        {
+          "name": "401 - Unauthorized (No Token)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "profile"]
+            }
+          }
+        },
+        {
+          "name": "400 - Validation Error",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"invalid-email\",\n  \"password\": \"123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
