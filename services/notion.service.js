@@ -175,6 +175,95 @@ class NotionService {
     }
   }
 
+  // Get all pages accessible by the integration
+  async getPages(accessToken, options = {}) {
+    try {
+      const { page_size = 100 } = options;
+
+      const payload = {
+        filter: {
+          value: 'page',
+          property: 'object'
+        },
+        page_size
+      };
+
+      const response = await axios.post(`${this.baseURL}/search`, payload, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Notion-Version': '2022-06-28'
+        }
+      });
+
+      return response.data.results.map(page => ({
+        id: page.id,
+        title: this.extractTitle(page.properties?.title || page.properties?.Name || {}),
+        url: page.url,
+        icon: page.icon,
+        cover: page.cover,
+        parent: page.parent,
+        createdTime: page.created_time,
+        lastEditedTime: page.last_edited_time
+      }));
+    } catch (error) {
+      console.error('Notion get pages error:', error.response?.data || error);
+      throw new Error('Failed to get pages');
+    }
+  }
+
+  // Get all databases accessible by the integration
+  async getDatabases(accessToken, options = {}) {
+    try {
+      const { page_size = 100 } = options;
+
+      const payload = {
+        filter: {
+          value: 'database',
+          property: 'object'
+        },
+        page_size
+      };
+
+      const response = await axios.post(`${this.baseURL}/search`, payload, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Notion-Version': '2022-06-28'
+        }
+      });
+
+      return response.data.results.map(database => ({
+        id: database.id,
+        title: this.extractTitle(database.title),
+        description: database.description?.map(desc => desc.plain_text).join('') || '',
+        url: database.url,
+        icon: database.icon,
+        cover: database.cover,
+        createdTime: database.created_time,
+        lastEditedTime: database.last_edited_time
+      }));
+    } catch (error) {
+      console.error('Notion get databases error:', error.response?.data || error);
+      throw new Error('Failed to get databases');
+    }
+  }
+
+  // Helper method to extract title from Notion title property
+  extractTitle(titleProperty) {
+    if (!titleProperty) return 'Untitled';
+    
+    if (Array.isArray(titleProperty)) {
+      return titleProperty.map(t => t.plain_text || t.text?.content || '').join('');
+    }
+    
+    if (titleProperty.title && Array.isArray(titleProperty.title)) {
+      return titleProperty.title.map(t => t.plain_text || t.text?.content || '').join('');
+    }
+    
+    return titleProperty.plain_text || titleProperty.text?.content || 'Untitled';
+  }
+
   // Get page content
   async getPage(userId, pageId) {
     try {

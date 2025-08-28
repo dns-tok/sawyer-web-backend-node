@@ -5,9 +5,12 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 const authRoutes = require('./routes/auth.route');
 const userRoutes = require('./routes/user.route');
-// const apiKeysRoutes = require('./routes/apiKeys.route');
+const apiKeysRoutes = require('./routes/apiKeys.route');
+const projectRoutes = require('./routes/project.route');
+const uploadRoutes = require('./routes/upload.route');
 // const mcpRoutes = require('./routes/mcp');
 // const chatRoutes = require('./routes/chat.route');
 
@@ -47,6 +50,9 @@ app.use(express.urlencoded({ extended: true }));
 // Custom middleware
 app.use(logger);
 
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Health check route
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -59,12 +65,14 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/projects', projectRoutes);
 // app.use('/api/notion', notionRoutes);
-// app.use('/api/api-keys', apiKeysRoutes);
+app.use('/api/api-keys', apiKeysRoutes);
 // app.use('/api/mcp', mcpRoutes);
 // app.use('/api/chat', chatRoutes);
-// app.use('/api/integrations', require('./routes/integrations'));
-// app.use('/api/user-integrations', require('./routes/userIntegrations'));
+app.use('/api/integrations', require('./routes/integrations.route'));
+app.use('/api/user-integrations', require('./routes/userIntegrations.route'));
 
 // Error handling middleware (should be last)
 app.use(errorHandler);

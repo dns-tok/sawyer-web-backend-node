@@ -33,38 +33,74 @@ const MCP_SERVERS = {
     ]
   },
   
-//   JIRA: {
-//     id: 'jira',
-//     name: 'Jira',
-//     description: 'Connect to Jira to manage issues, projects, and workflows',
-//     icon: '/icons/jira.svg',
-//     category: 'project-management',
-//     features: [
-//       'Create and update issues',
-//       'Search across projects',
-//       'Manage sprints',
-//       'Track project progress',
-//       'Generate reports'
-//     ],
-//     oauth: {
-//       authUrl: 'https://auth.atlassian.com/authorize',
-//       tokenUrl: 'https://auth.atlassian.com/oauth/token',
-//       scopes: ['read:jira-work', 'write:jira-work'],
-//       clientIdRequired: true,
-//       clientSecretRequired: true
-//     },
-//     status: 'coming_soon',
-//     version: '1.0.0',
-//     documentation: 'https://developer.atlassian.com/cloud/jira/',
-//     supportedActions: [
-//       'search_issues',
-//       'create_issue',
-//       'update_issue',
-//       'get_project',
-//       'list_projects'
-//     ]
-//   },
-  
+  JIRA: {
+    id: 'jira',
+    name: 'Jira',
+    description: 'Connect to Jira to manage issues, projects, and workflows',
+    icon: '/icons/jira.svg',
+    category: 'project-management',
+    features: [
+      'Create and update issues',
+      'Search across projects',
+      'Manage sprints',
+      'Track project progress',
+      'Generate reports'
+    ],
+    oauth: {
+      authUrl: 'https://auth.atlassian.com/authorize',
+      tokenUrl: 'https://auth.atlassian.com/oauth/token',
+      scopes: ['read:jira-work', 'write:jira-work'],
+      clientIdRequired: true,
+      clientSecretRequired: true
+    },
+    status: 'coming_soon',
+    version: '1.0.0',
+    documentation: 'https://developer.atlassian.com/cloud/jira/',
+    supportedActions: [
+      'search_issues',
+      'create_issue',
+      'update_issue',
+      'get_project',
+      'list_projects'
+    ]
+  },
+
+  GITHUB: {
+    id: 'github',
+    name: 'GitHub',
+    description: 'Connect to GitHub to access repositories, issues, pull requests, and collaborate on code',
+    icon: '/icons/github.svg',
+    category: 'development',
+    features: [
+      'Access repositories',
+      'Read and create issues',
+      'Manage pull requests',
+      'Browse code and commits',
+      'Track project activity',
+      'Manage branches and releases'
+    ],
+    oauth: {
+      authUrl: 'https://github.com/login/oauth/authorize',
+      tokenUrl: 'https://github.com/login/oauth/access_token',
+      scopes: ['repo', 'user:email', 'read:org'],
+      clientIdRequired: true,
+      clientSecretRequired: true
+    },
+    status: 'active',
+    version: '1.0.0',
+    documentation: 'https://docs.github.com/en/rest',
+    supportedActions: [
+      'list_repositories',
+      'get_repository',
+      'list_issues',
+      'create_issue',
+      'get_commits',
+      'list_branches',
+      'search_code',
+      'get_pull_requests'
+    ]
+  },
+
 //   FIGMA: {
 //     id: 'figma',
 //     name: 'Figma',
@@ -297,6 +333,12 @@ const INTEGRATION_CATEGORIES = {
     name: 'Data & Analytics',
     description: 'Data storage, analytics, and business intelligence',
     icon: '/icons/data.svg'
+  },
+  DEVELOPMENT: {
+    id: 'development',
+    name: 'Development',
+    description: 'Code repositories, version control, and development tools',
+    icon: '/icons/development.svg'
   }
 };
 

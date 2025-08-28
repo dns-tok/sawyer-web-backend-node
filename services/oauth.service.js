@@ -2,7 +2,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const UserIntegration = require('../models/UserIntegration');
 const { getMCPServerById } = require('../constants/integrations');
-const encryptionService = require('./encryptionService');
+const encryptionService = require('./encryption.service');
 
 class OAuthService {
   constructor() {

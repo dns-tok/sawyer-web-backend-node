@@ -3,7 +3,10 @@ const router = express.Router();
 const { auth } = require('../middleware/auth');
 const responseHandler = require('../utils/response.handler');
 const UserIntegration = require('../models/UserIntegration');
-const oauthService = require('../services/oauthService');
+const oauthService = require('../services/oauth.service');
+const githubService = require('../services/github.service');
+const jiraService = require('../services/jira.service');
+const notionService = require('../services/notion.service');
 const { getMCPServerById } = require('../constants/integrations');
 
 /**
@@ -426,6 +429,460 @@ router.get('/summary', auth, async (req, res) => {
       status: 'error',
       message: 'Failed to fetch integrations summary'
     });
+  }
+});
+
+/**
+ * @route   GET /api/user-integrations/github/auth
+ * @desc    Initiate GitHub OAuth flow
+ * @access  Private
+ */
+router.get('/github/auth', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const state = Buffer.from(JSON.stringify({ userId, timestamp: Date.now() })).toString('base64');
+
+    const authUrl = githubService.generateAuthUrl(state);
+
+    return responseHandler.success(res, { authUrl }, 'GitHub authorization URL generated');
+  } catch (error) {
+    console.error('GitHub auth initiation error:', error);
+    return responseHandler.error(res, 'Failed to initiate GitHub authentication', 500, error);
+  }
+});
+
+/**
+ * @route   GET /api/user-integrations/github/callback
+ * @desc    Handle GitHub OAuth callback
+ * @access  Public
+ */
+router.get('/github/callback', async (req, res) => {
+  try {
+    const { code, state, error } = req.query;
+
+    if (error) {
+      return res.redirect(`${process.env.FRONTEND_URL}/integrations?error=${encodeURIComponent(error)}`);
+    }
+
+    if (!code || !state) {
+      return res.redirect(`${process.env.FRONTEND_URL}/integrations?error=missing_parameters`);
+    }
+
+    // Decode state
+    const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+    const { userId } = stateData;
+
+    // Exchange code for token
+    const tokenData = await githubService.exchangeCodeForToken(code, state);
+
+    // Get user info
+    const githubUser = await githubService.getUser(tokenData.accessToken);
+
+    // Save or update integration
+    const integration = await UserIntegration.findOneAndUpdate(
+      { userId, integrationId: 'github' },
+      {
+        userId,
+        integrationId: 'github',
+        integrationName: 'GitHub',
+        integrationType: 'mcp_server',
+        status: 'connected',
+        connectionData: {
+          accessToken: tokenData.accessToken,
+          tokenType: tokenData.tokenType,
+          scope: tokenData.scope,
+          githubUserId: githubUser.id,
+          githubUsername: githubUser.login
+        },
+        metadata: {
+          connectedAt: new Date(),
+          lastSyncAt: new Date(),
+          userInfo: githubUser
+        },
+        capabilities: ['repositories', 'issues', 'commits', 'branches']
+      },
+      { upsert: true, new: true }
+    );
+
+    return res.redirect(`${process.env.FRONTEND_URL}/integrations?success=github_connected`);
+  } catch (error) {
+    console.error('GitHub callback error:', error);
+    return res.redirect(`${process.env.FRONTEND_URL}/integrations?error=connection_failed`);
+  }
+});
+
+/**
+ * @route   GET /api/user-integrations/github/repositories
+ * @desc    Get GitHub repositories for selection
+ * @access  Private
+ */
+router.get('/github/repositories', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, per_page = 30, type = 'all', sort = 'updated' } = req.query;
+
+    const integration = await UserIntegration.findOne({
+      userId,
+      integrationId: 'github',
+      status: 'connected'
+    });
+
+    if (!integration) {
+      return responseHandler.notFound(res, 'GitHub integration not found or not connected');
+    }
+
+    const repositories = await githubService.getRepositories(
+      integration.connectionData.accessToken,
+      { page: parseInt(page), per_page: parseInt(per_page), type, sort }
+    );
+
+    return responseHandler.success(res, { repositories }, 'GitHub repositories retrieved successfully');
+  } catch (error) {
+    console.error('Get GitHub repositories error:', error);
+    return responseHandler.error(res, 'Failed to get GitHub repositories', 500, error);
+  }
+});
+
+/**
+ * @route   GET /api/user-integrations/github/repositories/:owner/:repo/branches
+ * @desc    Get branches for a specific repository
+ * @access  Private
+ */
+router.get('/github/repositories/:owner/:repo/branches', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { owner, repo } = req.params;
+    const { page = 1, per_page = 30 } = req.query;
+
+    const integration = await UserIntegration.findOne({
+      userId,
+      integrationId: 'github',
+      status: 'connected'
+    });
+
+    if (!integration) {
+      return responseHandler.notFound(res, 'GitHub integration not found or not connected');
+    }
+
+    const branches = await githubService.getBranches(
+      integration.connectionData.accessToken,
+      owner,
+      repo,
+      { page: parseInt(page), per_page: parseInt(per_page) }
+    );
+
+    return responseHandler.success(res, { branches }, 'Repository branches retrieved successfully');
+  } catch (error) {
+    console.error('Get repository branches error:', error);
+    return responseHandler.error(res, 'Failed to get repository branches', 500, error);
+  }
+});
+
+/**
+ * @route   GET /api/user-integrations/jira/auth
+ * @desc    Initiate Jira OAuth flow
+ * @access  Private
+ */
+router.get('/jira/auth', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const state = Buffer.from(JSON.stringify({ userId, timestamp: Date.now() })).toString('base64');
+
+    const authUrl = jiraService.generateAuthUrl(state);
+
+    return responseHandler.success(res, { authUrl }, 'Jira authorization URL generated');
+  } catch (error) {
+    console.error('Jira auth initiation error:', error);
+    return responseHandler.error(res, 'Failed to initiate Jira authentication', 500, error);
+  }
+});
+
+/**
+ * @route   GET /api/user-integrations/jira/callback
+ * @desc    Handle Jira OAuth callback
+ * @access  Public
+ */
+router.get('/jira/callback', async (req, res) => {
+  try {
+    const { code, state, error } = req.query;
+
+    if (error) {
+      return res.redirect(`${process.env.FRONTEND_URL}/integrations?error=${encodeURIComponent(error)}`);
+    }
+
+    if (!code || !state) {
+      return res.redirect(`${process.env.FRONTEND_URL}/integrations?error=missing_parameters`);
+    }
+
+    // Decode state
+    const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+    const { userId } = stateData;
+
+    // Exchange code for token
+    const tokenData = await jiraService.exchangeCodeForToken(code, state);
+
+    // Get accessible resources
+    const resources = await jiraService.getAccessibleResources(tokenData.accessToken);
+
+    // Get user info from first accessible resource
+    let userInfo = null;
+    if (resources.length > 0) {
+      userInfo = await jiraService.getCurrentUser(tokenData.accessToken, resources[0].id);
+    }
+
+    // Save or update integration
+    const integration = await UserIntegration.findOneAndUpdate(
+      { userId, integrationId: 'jira' },
+      {
+        userId,
+        integrationId: 'jira',
+        integrationName: 'Jira',
+        integrationType: 'mcp_server',
+        status: 'connected',
+        connectionData: {
+          accessToken: tokenData.accessToken,
+          refreshToken: tokenData.refreshToken,
+          tokenType: tokenData.tokenType,
+          expiresIn: tokenData.expiresIn,
+          scope: tokenData.scope,
+          resources: resources
+        },
+        metadata: {
+          connectedAt: new Date(),
+          lastSyncAt: new Date(),
+          userInfo: userInfo,
+          availableResources: resources
+        },
+        capabilities: ['projects', 'boards', 'issues', 'sprints']
+      },
+      { upsert: true, new: true }
+    );
+
+    return res.redirect(`${process.env.FRONTEND_URL}/integrations?success=jira_connected`);
+  } catch (error) {
+    console.error('Jira callback error:', error);
+    return res.redirect(`${process.env.FRONTEND_URL}/integrations?error=connection_failed`);
+  }
+});
+
+/**
+ * @route   GET /api/user-integrations/jira/resources
+ * @desc    Get Jira accessible resources (sites)
+ * @access  Private
+ */
+router.get('/jira/resources', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const integration = await UserIntegration.findOne({
+      userId,
+      integrationId: 'jira',
+      status: 'connected'
+    });
+
+    if (!integration) {
+      return responseHandler.notFound(res, 'Jira integration not found or not connected');
+    }
+
+    const resources = integration.connectionData.resources || [];
+
+    return responseHandler.success(res, { resources }, 'Jira resources retrieved successfully');
+  } catch (error) {
+    console.error('Get Jira resources error:', error);
+    return responseHandler.error(res, 'Failed to get Jira resources', 500, error);
+  }
+});
+
+/**
+ * @route   GET /api/user-integrations/jira/projects
+ * @desc    Get Jira projects for selection
+ * @access  Private
+ */
+router.get('/jira/projects', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { cloudId, recent = 20 } = req.query;
+
+    const integration = await UserIntegration.findOne({
+      userId,
+      integrationId: 'jira',
+      status: 'connected'
+    });
+
+    if (!integration) {
+      return responseHandler.notFound(res, 'Jira integration not found or not connected');
+    }
+
+    // Use first resource if cloudId not specified
+    const targetCloudId = cloudId || integration.connectionData.resources[0]?.id;
+
+    if (!targetCloudId) {
+      return responseHandler.error(res, 'No Jira cloud ID available', 400);
+    }
+
+    const projects = await jiraService.getProjects(
+      integration.connectionData.accessToken,
+      targetCloudId,
+      { recent: parseInt(recent) }
+    );
+
+    return responseHandler.success(res, { projects, cloudId: targetCloudId }, 'Jira projects retrieved successfully');
+  } catch (error) {
+    console.error('Get Jira projects error:', error);
+    return responseHandler.error(res, 'Failed to get Jira projects', 500, error);
+  }
+});
+
+/**
+ * @route   GET /api/user-integrations/jira/boards
+ * @desc    Get Jira boards for selection
+ * @access  Private
+ */
+router.get('/jira/boards', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { cloudId, projectKeyOrId, type, maxResults = 50, startAt = 0 } = req.query;
+
+    const integration = await UserIntegration.findOne({
+      userId,
+      integrationId: 'jira',
+      status: 'connected'
+    });
+
+    if (!integration) {
+      return responseHandler.notFound(res, 'Jira integration not found or not connected');
+    }
+
+    // Use first resource if cloudId not specified
+    const targetCloudId = cloudId || integration.connectionData.resources[0]?.id;
+
+    if (!targetCloudId) {
+      return responseHandler.error(res, 'No Jira cloud ID available', 400);
+    }
+
+    const boardsData = await jiraService.getBoards(
+      integration.connectionData.accessToken,
+      targetCloudId,
+      {
+        projectKeyOrId,
+        type,
+        maxResults: parseInt(maxResults),
+        startAt: parseInt(startAt)
+      }
+    );
+
+    return responseHandler.success(res, { ...boardsData, cloudId: targetCloudId }, 'Jira boards retrieved successfully');
+  } catch (error) {
+    console.error('Get Jira boards error:', error);
+    return responseHandler.error(res, 'Failed to get Jira boards', 500, error);
+  }
+});
+
+/**
+ * @route   GET /api/user-integrations/notion/databases
+ * @desc    Get Notion databases for selection
+ * @access  Private
+ */
+router.get('/notion/databases', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page_size = 100 } = req.query;
+
+    const integration = await UserIntegration.findOne({
+      userId,
+      integrationId: 'notion',
+      status: 'connected'
+    });
+
+    if (!integration) {
+      return responseHandler.notFound(res, 'Notion integration not found or not connected');
+    }
+
+    // This would need to be implemented in notionService
+    const databases = await notionService.getDatabases(
+      integration.connectionData.accessToken,
+      { page_size: parseInt(page_size) }
+    );
+
+    return responseHandler.success(res, { databases }, 'Notion databases retrieved successfully');
+  } catch (error) {
+    console.error('Get Notion databases error:', error);
+    return responseHandler.error(res, 'Failed to get Notion databases', 500, error);
+  }
+});
+
+/**
+ * @route   GET /api/user-integrations/notion/pages
+ * @desc    Get Notion pages for selection
+ * @access  Private
+ */
+router.get('/notion/pages', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page_size = 100, filter } = req.query;
+
+    const integration = await UserIntegration.findOne({
+      userId,
+      integrationId: 'notion',
+      status: 'connected'
+    });
+
+    if (!integration) {
+      return responseHandler.notFound(res, 'Notion integration not found or not connected');
+    }
+
+    // This would need to be implemented in notionService
+    const pages = await notionService.getPages(
+      integration.connectionData.accessToken,
+      { page_size: parseInt(page_size), filter }
+    );
+
+    return responseHandler.success(res, { pages }, 'Notion pages retrieved successfully');
+  } catch (error) {
+    console.error('Get Notion pages error:', error);
+    return responseHandler.error(res, 'Failed to get Notion pages', 500, error);
+  }
+});
+
+/**
+ * @route   GET /api/user-integrations/notion/search
+ * @desc    Search Notion content
+ * @access  Private
+ */
+router.get('/notion/search', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { query, filter, sort, page_size = 100 } = req.query;
+
+    if (!query) {
+      return responseHandler.error(res, 'Search query is required', 400);
+    }
+
+    const integration = await UserIntegration.findOne({
+      userId,
+      integrationId: 'notion',
+      status: 'connected'
+    });
+
+    if (!integration) {
+      return responseHandler.notFound(res, 'Notion integration not found or not connected');
+    }
+
+    // This would need to be implemented in notionService
+    const results = await notionService.search(
+      integration.connectionData.accessToken,
+      {
+        query,
+        filter: filter ? JSON.parse(filter) : undefined,
+        sort: sort ? JSON.parse(sort) : undefined,
+        page_size: parseInt(page_size)
+      }
+    );
+
+    return responseHandler.success(res, { results }, 'Notion search completed successfully');
+  } catch (error) {
+    console.error('Notion search error:', error);
+    return responseHandler.error(res, 'Failed to search Notion content', 500, error);
   }
 });
 
