@@ -16,11 +16,20 @@ const createProjectValidation = [
     .withMessage('Project name cannot exceed 100 characters')
     .trim(),
   body('description')
-    .notEmpty()
-    .withMessage('Project description is required')
+    .optional()
     .isLength({ max: 2500 })
     .withMessage('Agent description cannot exceed 500 words (approximately 2500 characters)')
     .trim(),
+  // Custom validation: require either description or attachments
+  body().custom((value, { req }) => {
+    const hasDescription = req.body.description && req.body.description.trim().length > 0;
+    const hasAttachments = req.body.attachments && Array.isArray(req.body.attachments) && req.body.attachments.length > 0;
+    
+    if (!hasDescription && !hasAttachments) {
+      throw new Error('Provide either the description or a PDF attachment');
+    }
+    return true;
+  }),
   body('status')
     .optional()
     .isIn(['active', 'archived'])

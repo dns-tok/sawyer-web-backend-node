@@ -850,22 +850,28 @@
               "mode": "formdata",
               "formdata": [
                 {
-                  "key": "images",
+                  "key": "project_icon",
                   "type": "file",
                   "src": [],
-                  "description": "Upload image files"
+                  "description": "Upload project icon (PNG, JPG, JPEG, GIF, SVG, WebP) - Max 5MB"
                 },
                 {
-                  "key": "documents",
+                  "key": "project_attachment",
                   "type": "file",
                   "src": [],
-                  "description": "Upload document files (PDF, Word, Excel, etc.)"
+                  "description": "Upload project attachments (PDF only) - Max 10MB each, Max 10 files"
                 },
                 {
-                  "key": "files",
+                  "key": "avatar",
                   "type": "file",
                   "src": [],
-                  "description": "Upload any supported file types"
+                  "description": "Upload user avatar (PNG, JPG, JPEG, GIF, WebP) - Max 3MB"
+                },
+                {
+                  "key": "icon",
+                  "type": "file",
+                  "src": [],
+                  "description": "Upload general icon (PNG, JPG, JPEG, GIF, SVG, WebP) - Max 5MB"
                 }
               ]
             },
