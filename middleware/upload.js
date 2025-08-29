@@ -26,6 +26,12 @@ const FILE_CONFIGS = {
     maxSize: 5 * 1024 * 1024, // 5MB for images
     errorMessage: 'Icon must be an image file (PNG, JPG, JPEG, GIF, SVG, WebP)'
   },
+  project_icon: {
+    allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp'],
+    maxCount: 1,
+    maxSize: 5 * 1024 * 1024, // 5MB for project icons
+    errorMessage: 'Project icon must be an image file (PNG, JPG, JPEG, GIF, SVG, WebP)'
+  },
   project_attachment: {
     allowedTypes: ['application/pdf'],
     maxCount: 10,
