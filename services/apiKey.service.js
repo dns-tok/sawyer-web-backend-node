@@ -1,39 +1,39 @@
-const axios = require('axios');
-const ApiKey = require('../models/ApiKey');
-const encryptionService = require('../config/encryption');
+const axios = require("axios");
+const ApiKey = require("../models/ApiKey");
+const encryptionService = require("../config/encryption");
 
 class ApiKeyService {
   constructor() {
     this.providers = {
       openai: {
-        baseURL: 'https://api.openai.com/v1',
-        verifyEndpoint: '/models',
-        authHeader: (key) => ({ 'Authorization': `Bearer ${key}` })
+        baseURL: "https://api.openai.com/v1",
+        verifyEndpoint: "/models",
+        authHeader: (key) => ({ Authorization: `Bearer ${key}` }),
       },
       anthropic: {
-        baseURL: 'https://api.anthropic.com/v1',
-        verifyEndpoint: '/messages',
-        authHeader: (key) => ({ 
-          'x-api-key': key,
-          'anthropic-version': '2023-06-01'
-        })
+        baseURL: "https://api.anthropic.com/v1",
+        verifyEndpoint: "/messages",
+        authHeader: (key) => ({
+          "x-api-key": key,
+          "anthropic-version": "2023-06-01",
+        }),
       },
-      'google-ai': {
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        verifyEndpoint: '/models',
+      "google-ai": {
+        baseURL: "https://generativelanguage.googleapis.com/v1beta",
+        verifyEndpoint: "/models",
         authHeader: (key) => ({}),
-        queryParam: (key) => ({ key })
+        queryParam: (key) => ({ key }),
       },
       mistral: {
-        baseURL: 'https://api.mistral.ai/v1',
-        verifyEndpoint: '/models',
-        authHeader: (key) => ({ 'Authorization': `Bearer ${key}` })
+        baseURL: "https://api.mistral.ai/v1",
+        verifyEndpoint: "/models",
+        authHeader: (key) => ({ Authorization: `Bearer ${key}` }),
       },
       cohere: {
-        baseURL: 'https://api.cohere.ai/v1',
-        verifyEndpoint: '/models',
-        authHeader: (key) => ({ 'Authorization': `Bearer ${key}` })
-      }
+        baseURL: "https://api.cohere.ai/v1",
+        verifyEndpoint: "/models",
+        authHeader: (key) => ({ Authorization: `Bearer ${key}` }),
+      },
     };
   }
 
@@ -46,25 +46,27 @@ class ApiKeyService {
 
     try {
       let verification;
-      
+
       switch (provider) {
-        case 'openai':
+        case "openai":
           verification = await this.verifyOpenAI(apiKey);
           break;
-        case 'anthropic':
+        case "anthropic":
           verification = await this.verifyAnthropic(apiKey);
           break;
-        case 'google-ai':
+        case "google-ai":
           verification = await this.verifyGoogleAI(apiKey);
           break;
-        case 'mistral':
+        case "mistral":
           verification = await this.verifyMistral(apiKey);
           break;
-        case 'cohere':
+        case "cohere":
           verification = await this.verifyCohere(apiKey);
           break;
         default:
-          throw new Error(`Verification not implemented for provider: ${provider}`);
+          throw new Error(
+            `Verification not implemented for provider: ${provider}`
+          );
       }
 
       return verification;
@@ -77,34 +79,34 @@ class ApiKeyService {
   // OpenAI verification
   async verifyOpenAI(apiKey) {
     try {
-      const response = await axios.get('https://api.openai.com/v1/models', {
+      const response = await axios.get("https://api.openai.com/v1/models", {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
         },
-        timeout: 10000
+        timeout: 10000,
       });
 
       const models = response.data.data || [];
-      const gptModels = models.filter(m => m.id.includes('gpt'));
+      const gptModels = models.filter((m) => m.id.includes("gpt"));
 
       return {
         valid: true,
-        organizationId: response.headers['openai-organization'] || null,
-        models: gptModels.map(m => ({
+        organizationId: response.headers["openai-organization"] || null,
+        models: gptModels.map((m) => ({
           id: m.id,
           name: m.id,
-          provider: 'openai'
+          provider: "openai",
         })),
-        permissions: this.extractOpenAIPermissions(models)
+        permissions: this.extractOpenAIPermissions(models),
       };
     } catch (error) {
       if (error.response?.status === 401) {
-        throw new Error('Invalid OpenAI API key');
+        throw new Error("Invalid OpenAI API key");
       } else if (error.response?.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again later.');
+        throw new Error("Rate limit exceeded. Please try again later.");
       }
-      throw new Error('Failed to verify OpenAI API key');
+      throw new Error("Failed to verify OpenAI API key");
     }
   }
 
@@ -113,19 +115,19 @@ class ApiKeyService {
     try {
       // Test with a minimal message request
       const response = await axios.post(
-        'https://api.anthropic.com/v1/messages',
+        "https://api.anthropic.com/v1/messages",
         {
-          model: 'claude-3-haiku-20240307',
-          messages: [{ role: 'user', content: 'Test' }],
-          max_tokens: 1
+          model: "claude-3-haiku-20240307",
+          messages: [{ role: "user", content: "Test" }],
+          max_tokens: 1,
         },
         {
           headers: {
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'Content-Type': 'application/json'
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
           },
-          timeout: 10000
+          timeout: 10000,
         }
       );
 
@@ -133,28 +135,52 @@ class ApiKeyService {
       return {
         valid: true,
         models: [
-          { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus', provider: 'anthropic' },
-          { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet', provider: 'anthropic' },
-          { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku', provider: 'anthropic' }
+          {
+            id: "claude-3-opus-20240229",
+            name: "Claude 3 Opus",
+            provider: "anthropic",
+          },
+          {
+            id: "claude-3-sonnet-20240229",
+            name: "Claude 3 Sonnet",
+            provider: "anthropic",
+          },
+          {
+            id: "claude-3-haiku-20240307",
+            name: "Claude 3 Haiku",
+            provider: "anthropic",
+          },
         ],
-        permissions: ['chat', 'completion']
+        permissions: ["chat", "completion"],
       };
     } catch (error) {
       if (error.response?.status === 401) {
-        throw new Error('Invalid Anthropic API key');
+        throw new Error("Invalid Anthropic API key");
       } else if (error.response?.status === 400) {
         // Bad request likely means key is valid but request format is wrong
         return {
           valid: true,
           models: [
-            { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus', provider: 'anthropic' },
-            { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet', provider: 'anthropic' },
-            { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku', provider: 'anthropic' }
+            {
+              id: "claude-3-opus-20240229",
+              name: "Claude 3 Opus",
+              provider: "anthropic",
+            },
+            {
+              id: "claude-3-sonnet-20240229",
+              name: "Claude 3 Sonnet",
+              provider: "anthropic",
+            },
+            {
+              id: "claude-3-haiku-20240307",
+              name: "Claude 3 Haiku",
+              provider: "anthropic",
+            },
           ],
-          permissions: ['chat', 'completion']
+          permissions: ["chat", "completion"],
         };
       }
-      throw new Error('Failed to verify Anthropic API key');
+      throw new Error("Failed to verify Anthropic API key");
     }
   }
 
@@ -167,103 +193,103 @@ class ApiKeyService {
       );
 
       const models = response.data.models || [];
-      const geminiModels = models.filter(m => m.name.includes('gemini'));
+      const geminiModels = models.filter((m) => m.name.includes("gemini"));
 
       return {
         valid: true,
-        models: geminiModels.map(m => ({
+        models: geminiModels.map((m) => ({
           id: m.name,
           name: m.displayName || m.name,
-          provider: 'google-ai'
+          provider: "google-ai",
         })),
-        permissions: ['chat', 'completion']
+        permissions: ["chat", "completion"],
       };
     } catch (error) {
       if (error.response?.status === 400 || error.response?.status === 401) {
-        throw new Error('Invalid Google AI API key');
+        throw new Error("Invalid Google AI API key");
       }
-      throw new Error('Failed to verify Google AI API key');
+      throw new Error("Failed to verify Google AI API key");
     }
   }
 
   // Mistral verification
   async verifyMistral(apiKey) {
     try {
-      const response = await axios.get('https://api.mistral.ai/v1/models', {
+      const response = await axios.get("https://api.mistral.ai/v1/models", {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
         },
-        timeout: 10000
+        timeout: 10000,
       });
 
       const models = response.data.data || [];
 
       return {
         valid: true,
-        models: models.map(m => ({
+        models: models.map((m) => ({
           id: m.id,
           name: m.id,
-          provider: 'mistral'
+          provider: "mistral",
         })),
-        permissions: ['chat', 'completion']
+        permissions: ["chat", "completion"],
       };
     } catch (error) {
       if (error.response?.status === 401) {
-        throw new Error('Invalid Mistral API key');
+        throw new Error("Invalid Mistral API key");
       }
-      throw new Error('Failed to verify Mistral API key');
+      throw new Error("Failed to verify Mistral API key");
     }
   }
 
   // Cohere verification
   async verifyCohere(apiKey) {
     try {
-      const response = await axios.get('https://api.cohere.ai/v1/models', {
+      const response = await axios.get("https://api.cohere.ai/v1/models", {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
         },
-        timeout: 10000
+        timeout: 10000,
       });
 
       const models = response.data.models || [];
 
       return {
         valid: true,
-        models: models.map(m => ({
+        models: models.map((m) => ({
           id: m.name,
           name: m.name,
-          provider: 'cohere'
+          provider: "cohere",
         })),
-        permissions: ['chat', 'completion', 'embed']
+        permissions: ["chat", "completion", "embed"],
       };
     } catch (error) {
       if (error.response?.status === 401) {
-        throw new Error('Invalid Cohere API key');
+        throw new Error("Invalid Cohere API key");
       }
-      throw new Error('Failed to verify Cohere API key');
+      throw new Error("Failed to verify Cohere API key");
     }
   }
 
   // Extract OpenAI permissions from models
   extractOpenAIPermissions(models) {
     const permissions = [];
-    
-    if (models.some(model => model.id.includes('gpt'))) {
-      permissions.push('chat', 'completion');
+
+    if (models.some((model) => model.id.includes("gpt"))) {
+      permissions.push("chat", "completion");
     }
-    if (models.some(model => model.id.includes('dall-e'))) {
-      permissions.push('image-generation');
+    if (models.some((model) => model.id.includes("dall-e"))) {
+      permissions.push("image-generation");
     }
-    if (models.some(model => model.id.includes('whisper'))) {
-      permissions.push('audio-transcription');
+    if (models.some((model) => model.id.includes("whisper"))) {
+      permissions.push("audio-transcription");
     }
-    if (models.some(model => model.id.includes('tts'))) {
-      permissions.push('text-to-speech');
+    if (models.some((model) => model.id.includes("tts"))) {
+      permissions.push("text-to-speech");
     }
-    if (models.some(model => model.id.includes('embedding'))) {
-      permissions.push('embeddings');
+    if (models.some((model) => model.id.includes("embedding"))) {
+      permissions.push("embeddings");
     }
 
     return permissions;
@@ -274,9 +300,9 @@ class ApiKeyService {
     try {
       // Verify the API key first
       const verification = await this.verifyApiKey(provider, apiKey);
-      
+
       if (!verification.valid) {
-        throw new Error(verification.error || 'Invalid API key');
+        throw new Error(verification.error || "Invalid API key");
       }
 
       // Deactivate any existing API keys for this user and provider
@@ -284,12 +310,14 @@ class ApiKeyService {
 
       // Encrypt the API key
       const encryptedApiKey = encryptionService.encryptApiKey(apiKey);
-      
+
       // Generate key prefix for identification
-      const keyPrefix = apiKey.substring(0, 7) + '...';
-      
+      const keyPrefix = apiKey.substring(0, 7) + "...";
+
       // Use provider name as default key name if not provided
-      const finalKeyName = keyName || `${provider.charAt(0).toUpperCase() + provider.slice(1)} API Key`;
+      const finalKeyName =
+        keyName ||
+        `${provider.charAt(0).toUpperCase() + provider.slice(1)} API Key`;
 
       // Create new API key record
       const apiKeyRecord = new ApiKey({
@@ -304,8 +332,8 @@ class ApiKeyService {
           organizationId: verification.organizationId,
           permissions: verification.permissions,
           models: verification.models,
-          lastValidation: new Date()
-        }
+          lastValidation: new Date(),
+        },
       });
 
       const savedApiKey = await apiKeyRecord.save();
@@ -318,31 +346,41 @@ class ApiKeyService {
           keyName: savedApiKey.keyName,
           keyPrefix: savedApiKey.keyPrefix,
           isVerified: savedApiKey.isVerified,
-          createdAt: savedApiKey.createdAt
+          createdAt: savedApiKey.createdAt,
         },
         verification: {
           models: verification.models,
-          permissions: verification.permissions
-        }
+          permissions: verification.permissions,
+        },
       };
     } catch (error) {
-      console.error('Error saving API key:', error);
+      console.error("Error saving API key:", error);
       throw error;
     }
   }
 
   // Get all API keys for user
+  // Get all API keys for user (decrypted)
   async getUserApiKeys(userId) {
     try {
+      // Fetch all active keys including the encrypted key
       const apiKeys = await ApiKey.find({
         userId,
-        isActive: true
-      }).select('-encryptedApiKey');
+        isActive: true,
+      }).select("+encryptedApiKey"); // include encryptedApiKey
 
-      return apiKeys;
+      // Decrypt each key before returning
+      const decryptedKeys = apiKeys.map((k) => ({
+        provider: k.provider,
+        keyName: k.keyName,
+        apiKey: encryptionService.decryptApiKey(k.encryptedApiKey), // decrypt
+        createdAt: k.createdAt,
+      }));
+
+      return decryptedKeys;
     } catch (error) {
-      console.error('Error fetching user API keys:', error);
-      throw new Error('Failed to fetch API keys');
+      console.error("Error fetching user API keys:", error);
+      throw new Error("Failed to fetch API keys");
     }
   }
 
@@ -352,13 +390,13 @@ class ApiKeyService {
       const apiKey = await ApiKey.findOne({
         userId,
         provider,
-        isActive: true
-      }).select('-encryptedApiKey');
+        isActive: true,
+      }).select("-encryptedApiKey");
 
       return apiKey;
     } catch (error) {
-      console.error('Error fetching API key:', error);
-      throw new Error('Failed to fetch API key');
+      console.error("Error fetching API key:", error);
+      throw new Error("Failed to fetch API key");
     }
   }
 
@@ -368,21 +406,23 @@ class ApiKeyService {
       const apiKeyRecord = await ApiKey.findOne({
         userId,
         provider,
-        isActive: true
-      }).select('+encryptedApiKey');
+        isActive: true,
+      }).select("+encryptedApiKey");
 
       if (!apiKeyRecord) {
-        throw new Error('No API key found for this provider');
+        throw new Error("No API key found for this provider");
       }
 
-      const decryptedKey = encryptionService.decryptApiKey(apiKeyRecord.encryptedApiKey);
+      const decryptedKey = encryptionService.decryptApiKey(
+        apiKeyRecord.encryptedApiKey
+      );
       const verification = await this.verifyApiKey(provider, decryptedKey);
 
       // Update verification status
       if (verification.valid) {
         await apiKeyRecord.markAsVerified({
           models: verification.models,
-          permissions: verification.permissions
+          permissions: verification.permissions,
         });
         await apiKeyRecord.updateLastUsed();
       } else {
@@ -391,14 +431,16 @@ class ApiKeyService {
 
       return {
         valid: verification.valid,
-        message: verification.valid ? 'API key is working correctly' : verification.error,
-        models: verification.models
+        message: verification.valid
+          ? "API key is working correctly"
+          : verification.error,
+        models: verification.models,
       };
     } catch (error) {
-      console.error('Error testing API key:', error);
+      console.error("Error testing API key:", error);
       return {
         valid: false,
-        message: error.message || 'Failed to test API key'
+        message: error.message || "Failed to test API key",
       };
     }
   }
@@ -409,7 +451,7 @@ class ApiKeyService {
       const apiKeyRecord = await ApiKey.findOne({
         userId,
         provider,
-        isActive: true
+        isActive: true,
       });
 
       if (apiKeyRecord) {
@@ -418,8 +460,8 @@ class ApiKeyService {
 
       return { success: true };
     } catch (error) {
-      console.error('Error deleting API key:', error);
-      throw new Error('Failed to delete API key');
+      console.error("Error deleting API key:", error);
+      throw new Error("Failed to delete API key");
     }
   }
 
@@ -429,14 +471,16 @@ class ApiKeyService {
       const verification = await this.verifyApiKey(provider, apiKey);
       return {
         isValid: verification.valid,
-        message: verification.valid ? `${provider} API key is valid` : 'Invalid API key',
-        models: verification.models || []
+        message: verification.valid
+          ? `${provider} API key is valid`
+          : "Invalid API key",
+        models: verification.models || [],
       };
     } catch (error) {
       return {
         isValid: false,
-        message: error.message || 'Failed to validate API key',
-        models: []
+        message: error.message || "Failed to validate API key",
+        models: [],
       };
     }
   }
