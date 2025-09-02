@@ -880,6 +880,65 @@ router.get('/notion/pages', auth, async (req, res) => {
 });
 
 /**
+ * @route   GET /api/user-integrations/notion/resources
+ * @desc    Get all Notion resources (databases and pages) combined
+ * @access  Private
+ */
+router.get('/notion/resources', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page_size = 100, q } = req.query;
+
+    const integration = await UserIntegration.findOne({
+      userId,
+      integrationId: 'notion',
+      status: 'connected'
+    });
+
+    if (!integration) {
+      return responseHandler.notFound(res, 'Notion integration not found or not connected');
+    }
+
+    // Decrypt the access token
+    const decryptedAccessToken = encryptionService.decrypt(integration.connectionData.accessToken);
+
+    let allResources = [];
+
+    // If search query is provided, use search endpoint
+    if (q && q.trim()) {
+      const searchResults = await notionService.searchPages(userId, q, parseInt(page_size));
+      allResources = searchResults.results || [];
+    } else {
+      // Fetch both databases and pages
+      const [databases, pages] = await Promise.all([
+        notionService.getDatabases(decryptedAccessToken, { page_size: Math.floor(parseInt(page_size) / 2) }),
+        notionService.getPages(decryptedAccessToken, { page_size: Math.ceil(parseInt(page_size) / 2) })
+      ]);
+
+      // Combine and add type indicators
+      const databasesWithType = databases.map(db => ({
+        ...db,
+        type: 'database',
+        title: db.title || db.name
+      }));
+
+      const pagesWithType = pages.map(page => ({
+        ...page,
+        type: 'page',
+        title: page.title || page.name
+      }));
+
+      allResources = [...databasesWithType, ...pagesWithType];
+    }
+
+    return responseHandler.success(res, { resources: allResources }, 'Notion resources retrieved successfully');
+  } catch (error) {
+    console.error('Get Notion resources error:', error);
+    return responseHandler.error(res, 'Failed to get Notion resources', 500, error);
+  }
+});
+
+/**
  * @route   GET /api/user-integrations/notion/search
  * @desc    Search Notion content
  * @access  Private
