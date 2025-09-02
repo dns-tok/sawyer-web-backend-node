@@ -53,7 +53,7 @@ const MCP_SERVERS = {
       clientIdRequired: true,
       clientSecretRequired: true
     },
-    status: 'coming_soon',
+    status: 'active',
     version: '1.0.0',
     documentation: 'https://developer.atlassian.com/cloud/jira/',
     supportedActions: [

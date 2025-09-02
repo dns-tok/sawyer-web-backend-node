@@ -1,6 +1,8 @@
 const axios = require('axios');
 const NotionIntegration = require('../models/NotionIntegration');
-const encryptionService = require('../config/encryption');
+const { Client } = require('@notionhq/client');
+const User = require('../models/User');
+const encryptionService = require('./encryption.service');
 
 class NotionService {
   constructor() {
@@ -233,6 +235,7 @@ class NotionService {
         }
       });
 
+      console.log("RESPONSE ====> ", response.data);
       return response.data.results.map(database => ({
         id: database.id,
         title: this.extractTitle(database.title),

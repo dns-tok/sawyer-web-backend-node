@@ -102,6 +102,35 @@ class EncryptionService {
     const textHash = this.hash(text);
     return crypto.timingSafeEqual(Buffer.from(textHash), Buffer.from(hash));
   }
+
+  // API Key specific encryption methods (for backward compatibility)
+  encryptApiKey(apiKey) {
+    return this.encrypt(apiKey);
+  }
+
+  decryptApiKey(encryptedApiKey) {
+    return this.decrypt(encryptedApiKey);
+  }
+
+  // Password hashing methods
+  hashPassword(password) {
+    try {
+      return crypto.pbkdf2Sync(password, this.key, 10000, 64, 'sha512').toString('hex');
+    } catch (error) {
+      console.error('Password hashing error:', error);
+      throw new Error('Failed to hash password');
+    }
+  }
+
+  verifyPassword(password, hashedPassword) {
+    try {
+      const hash = this.hashPassword(password);
+      return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(hashedPassword));
+    } catch (error) {
+      console.error('Password verification error:', error);
+      return false;
+    }
+  }
 }
 
 module.exports = new EncryptionService();

@@ -7,6 +7,7 @@ const oauthService = require('../services/oauth.service');
 const githubService = require('../services/github.service');
 const jiraService = require('../services/jira.service');
 const notionService = require('../services/notion.service');
+const encryptionService = require('../services/encryption.service');
 const { getMCPServerById } = require('../constants/integrations');
 
 /**
@@ -97,7 +98,7 @@ router.post('/:integrationId/connect', auth, async (req, res) => {
     }
 
     // Use backend callback URL (not frontend)
-    const backendCallbackUrl = `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/user-integrations/oauth/callback/${integrationId}`;
+    const backendCallbackUrl = `${process.env.BACKEND_URL || 'http://localhost:3005'}/api/user-integrations/oauth/callback/${integrationId}`;
 
     // Generate OAuth URL
     const oauthData = await oauthService.generateAuthUrl(userId, integrationId, backendCallbackUrl);
@@ -127,7 +128,9 @@ router.get('/oauth/callback/:integrationId', async (req, res) => {
     const { integrationId } = req.params;
     const { code, state, error } = req.query;
     
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+    console.log("CALLBACK ====> ", req.query);
 
     if (error) {
       // Redirect to frontend with error
@@ -140,7 +143,7 @@ router.get('/oauth/callback/:integrationId', async (req, res) => {
     res.redirect(`${frontendUrl}/oauth/callback?success=true&integration=${integrationId}&name=${encodeURIComponent(result.integration.integrationName)}`);
   } catch (error) {
     console.error('Error handling OAuth callback:', error);
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const { integrationId } = req.params;
     res.redirect(`${frontendUrl}/oauth/callback?error=${encodeURIComponent(error.message)}&integration=${integrationId}`);
   }
@@ -519,7 +522,14 @@ router.get('/github/callback', async (req, res) => {
 router.get('/github/repositories', auth, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { page = 1, per_page = 30, type = 'all', sort = 'updated' } = req.query;
+    const { 
+      page = 1, 
+      per_page = 30, 
+      sort = 'updated', 
+      affiliation = 'owner,collaborator,organization_member',
+      visibility, // all, public, private
+      q // search query
+    } = req.query;
 
     const integration = await UserIntegration.findOne({
       userId,
@@ -531,9 +541,19 @@ router.get('/github/repositories', auth, async (req, res) => {
       return responseHandler.notFound(res, 'GitHub integration not found or not connected');
     }
 
+    // Decrypt the access token
+    const decryptedAccessToken = encryptionService.decrypt(integration.connectionData.accessToken);
+
     const repositories = await githubService.getRepositories(
-      integration.connectionData.accessToken,
-      { page: parseInt(page), per_page: parseInt(per_page), type, sort }
+      decryptedAccessToken,
+      { 
+        page: parseInt(page), 
+        per_page: parseInt(per_page), 
+        sort, 
+        affiliation,
+        visibility,
+        q // pass search query
+      }
     );
 
     return responseHandler.success(res, { repositories }, 'GitHub repositories retrieved successfully');
@@ -564,8 +584,11 @@ router.get('/github/repositories/:owner/:repo/branches', auth, async (req, res) 
       return responseHandler.notFound(res, 'GitHub integration not found or not connected');
     }
 
+    // Decrypt the access token
+    const decryptedAccessToken = encryptionService.decrypt(integration.connectionData.accessToken);
+
     const branches = await githubService.getBranches(
-      integration.connectionData.accessToken,
+      decryptedAccessToken,
       owner,
       repo,
       { page: parseInt(page), per_page: parseInt(per_page) }
@@ -720,8 +743,11 @@ router.get('/jira/projects', auth, async (req, res) => {
       return responseHandler.error(res, 'No Jira cloud ID available', 400);
     }
 
+    // Decrypt the access token
+    const decryptedAccessToken = encryptionService.decrypt(integration.connectionData.accessToken);
+
     const projects = await jiraService.getProjects(
-      integration.connectionData.accessToken,
+      decryptedAccessToken,
       targetCloudId,
       { recent: parseInt(recent) }
     );
@@ -760,8 +786,11 @@ router.get('/jira/boards', auth, async (req, res) => {
       return responseHandler.error(res, 'No Jira cloud ID available', 400);
     }
 
+    // Decrypt the access token
+    const decryptedAccessToken = encryptionService.decrypt(integration.connectionData.accessToken);
+
     const boardsData = await jiraService.getBoards(
-      integration.connectionData.accessToken,
+      decryptedAccessToken,
       targetCloudId,
       {
         projectKeyOrId,
@@ -798,9 +827,12 @@ router.get('/notion/databases', auth, async (req, res) => {
       return responseHandler.notFound(res, 'Notion integration not found or not connected');
     }
 
+    // Decrypt the access token
+    const decryptedAccessToken = encryptionService.decrypt(integration.connectionData.accessToken);
+
     // This would need to be implemented in notionService
     const databases = await notionService.getDatabases(
-      integration.connectionData.accessToken,
+      decryptedAccessToken,
       { page_size: parseInt(page_size) }
     );
 
@@ -831,9 +863,12 @@ router.get('/notion/pages', auth, async (req, res) => {
       return responseHandler.notFound(res, 'Notion integration not found or not connected');
     }
 
+    // Decrypt the access token
+    const decryptedAccessToken = encryptionService.decrypt(integration.connectionData.accessToken);
+
     // This would need to be implemented in notionService
     const pages = await notionService.getPages(
-      integration.connectionData.accessToken,
+      decryptedAccessToken,
       { page_size: parseInt(page_size), filter }
     );
 
@@ -868,9 +903,12 @@ router.get('/notion/search', auth, async (req, res) => {
       return responseHandler.notFound(res, 'Notion integration not found or not connected');
     }
 
+    // Decrypt the access token
+    const decryptedAccessToken = encryptionService.decrypt(integration.connectionData.accessToken);
+
     // This would need to be implemented in notionService
     const results = await notionService.search(
-      integration.connectionData.accessToken,
+      decryptedAccessToken,
       {
         query,
         filter: filter ? JSON.parse(filter) : undefined,

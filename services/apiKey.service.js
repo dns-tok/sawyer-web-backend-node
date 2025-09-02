@@ -1,6 +1,6 @@
 const axios = require("axios");
 const ApiKey = require("../models/ApiKey");
-const encryptionService = require("../config/encryption");
+const encryptionService = require("./encryption.service");
 
 class ApiKeyService {
   constructor() {

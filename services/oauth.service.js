@@ -77,6 +77,8 @@ class OAuthService {
    */
   async handleCallback(code, state, error) {
     try {
+      console.log('OAuth callback received:', { code: code?.substring(0, 10) + '...', state: state?.substring(0, 10) + '...', error });
+      
       if (error) {
         throw new Error(`OAuth error: ${error}`);
       }
@@ -88,13 +90,19 @@ class OAuthService {
       // Verify state parameter
       const stateData = this.stateStorage.get(state);
       if (!stateData) {
+        console.error('Invalid state parameter:', state);
+        console.error('Available states:', Array.from(this.stateStorage.keys()));
         throw new Error('Invalid or expired state parameter');
       }
+
+      console.log('State verified successfully for user:', stateData.userId);
 
       // Clean up state
       this.stateStorage.delete(state);
 
       const { userId, integrationId, redirectUri } = stateData;
+      console.log(`Processing OAuth callback for ${integrationId}, user: ${userId}`);
+      
       const mcpServer = getMCPServerById(integrationId);
 
       if (!mcpServer) {
@@ -107,6 +115,7 @@ class OAuthService {
       // Create or update user integration
       const integration = await this.createOrUpdateIntegration(userId, integrationId, tokenData);
 
+      console.log(`OAuth callback completed successfully for ${integrationId}`);
       return {
         integration,
         success: true
@@ -131,6 +140,9 @@ class OAuthService {
       }
 
       const tokenUrl = mcpServer.oauth.tokenUrl;
+      console.log(`[${integrationId}] Token exchange started`);
+      console.log(`[${integrationId}] Token URL: ${tokenUrl}`);
+      console.log(`[${integrationId}] Client ID: ${clientId.substring(0, 10)}...`);
 
       // Integration-specific token exchange
       let response;
@@ -144,6 +156,7 @@ class OAuthService {
           redirect_uri: redirectUri
         };
 
+        console.log(`[${integrationId}] Making Notion token request`);
         response = await axios.post(tokenUrl, tokenData, {
           headers: {
             'Accept': 'application/json',
@@ -152,27 +165,54 @@ class OAuthService {
             'Notion-Version': '2022-06-28'
           }
         });
-      } else {
-        // Standard OAuth2 flow for other providers
-        const tokenData = {
+      } else if (integrationId === 'github') {
+        // GitHub requires URL-encoded form data
+        const tokenData = new URLSearchParams({
           grant_type: 'authorization_code',
           code,
           redirect_uri: redirectUri,
           client_id: clientId,
           client_secret: clientSecret
-        };
+        });
 
-        response = await axios.post(tokenUrl, tokenData, {
+        console.log(`[${integrationId}] Making GitHub token request`);
+        response = await axios.post(tokenUrl, tokenData.toString(), {
           headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Sawyer-AI-App'
+          }
+        });
+      } else {
+        // Standard OAuth2 flow for other providers
+        const tokenData = new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+          client_id: clientId,
+          client_secret: clientSecret
+        });
+
+        console.log(`[${integrationId}] Making standard OAuth token request`);
+        response = await axios.post(tokenUrl, tokenData.toString(), {
+          headers: {
+            'Accept': 'application/json',
             'Content-Type': 'application/x-www-form-urlencoded'
           }
         });
       }
 
+      console.log(`[${integrationId}] Token exchange successful`);
+      console.log(`[${integrationId}] Response keys:`, Object.keys(response.data));
+      
       return response.data;
     } catch (error) {
-      console.error('Error exchanging code for tokens:', error);
-      throw new Error('Failed to exchange authorization code for tokens');
+      console.error(`[${integrationId}] Error exchanging code for tokens:`, error.response?.data || error.message);
+      if (error.response) {
+        console.error(`[${integrationId}] Status:`, error.response.status);
+        console.error(`[${integrationId}] Headers:`, error.response.headers);
+      }
+      throw new Error(`Failed to exchange authorization code for tokens: ${error.response?.data?.error_description || error.message}`);
     }
   }
 
@@ -181,7 +221,14 @@ class OAuthService {
    */
   async createOrUpdateIntegration(userId, integrationId, tokenData) {
     try {
+      console.log(`[${integrationId}] Creating/updating integration for user:`, userId);
+      console.log(`[${integrationId}] Token data keys:`, Object.keys(tokenData));
+      
       const mcpServer = getMCPServerById(integrationId);
+      
+      if (!tokenData.access_token) {
+        throw new Error(`No access token received from ${integrationId}`);
+      }
       
       // Encrypt sensitive data
       const encryptedAccessToken = encryptionService.encrypt(tokenData.access_token);
@@ -226,9 +273,10 @@ class OAuthService {
         }
       );
 
+      console.log(`[${integrationId}] Integration saved successfully:`, integration._id);
       return integration;
     } catch (error) {
-      console.error('Error creating/updating integration:', error);
+      console.error(`[${integrationId}] Error creating/updating integration:`, error);
       throw error;
     }
   }

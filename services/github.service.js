@@ -96,22 +96,37 @@ class GitHubService {
     async getRepositories(accessToken, options = {}) {
         try {
             const {
-                type = 'all', // all, owner, member
                 sort = 'updated', // created, updated, pushed, full_name
                 direction = 'desc', // asc, desc
                 per_page = 30,
                 page = 1,
-                affiliation = 'owner,collaborator,organization_member'
+                affiliation = 'owner,collaborator,organization_member', // owner, collaborator, organization_member
+                visibility, // all, public, private (optional)
+                q // search query
             } = options;
 
+            // If search query is provided, use search API instead of list repos
+            if (q && q.trim()) {
+                return await this.searchRepositories(accessToken, {
+                    q: q.trim(),
+                    sort,
+                    per_page,
+                    page
+                });
+            }
+
             const params = new URLSearchParams({
-                type,
                 sort,
                 direction,
                 per_page: per_page.toString(),
                 page: page.toString(),
                 affiliation
             });
+
+            // Add visibility if specified
+            if (visibility) {
+                params.append('visibility', visibility);
+            }
 
             const response = await axios.get(`${this.baseURL}/user/repos?${params.toString()}`, {
                 headers: {
@@ -149,6 +164,77 @@ class GitHubService {
         } catch (error) {
             console.error('GitHub get repositories error:', error);
             throw new Error('Failed to get repositories');
+        }
+    }
+
+    /**
+     * Search repositories for authenticated user
+     */
+    async searchRepositories(accessToken, options = {}) {
+        try {
+            const {
+                q,
+                sort = 'updated',
+                per_page = 30,
+                page = 1
+            } = options;
+
+            // Get current user to build search query
+            const userResponse = await axios.get(`${this.baseURL}/user`, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+
+            const username = userResponse.data.login;
+
+            // Build search query to include user's repos and orgs they're part of
+            const searchQuery = `${q} user:${username}`;
+
+            const params = new URLSearchParams({
+                q: searchQuery,
+                sort,
+                per_page: per_page.toString(),
+                page: page.toString()
+            });
+
+            const response = await axios.get(`${this.baseURL}/search/repositories?${params.toString()}`, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+
+            return response.data.items.map(repo => ({
+                id: repo.id,
+                name: repo.name,
+                fullName: repo.full_name,
+                description: repo.description,
+                private: repo.private,
+                htmlUrl: repo.html_url,
+                cloneUrl: repo.clone_url,
+                sshUrl: repo.ssh_url,
+                defaultBranch: repo.default_branch,
+                language: repo.language,
+                size: repo.size,
+                stargazersCount: repo.stargazers_count,
+                watchersCount: repo.watchers_count,
+                forksCount: repo.forks_count,
+                createdAt: repo.created_at,
+                updatedAt: repo.updated_at,
+                pushedAt: repo.pushed_at,
+                topics: repo.topics || [],
+                owner: {
+                    login: repo.owner.login,
+                    id: repo.owner.id,
+                    avatarUrl: repo.owner.avatar_url,
+                    type: repo.owner.type
+                }
+            }));
+        } catch (error) {
+            console.error('GitHub search repositories error:', error);
+            throw new Error('Failed to search repositories');
         }
     }
 

@@ -1,8 +1,7 @@
 const { Agent, Runner, MCPServerStdio, run } = require('@openai/agents');
 const UserIntegration = require('../models/UserIntegration');
 const ApiKey = require('../models/ApiKey');
-const encryptionService = require('../config/encryption');
-const encryptionServiceForIntegration = require('./encryption.service');
+const encryptionService = require('./encryption.service');
 
 class AgentService {
   constructor() {
@@ -55,7 +54,7 @@ class AgentService {
 
 
       // Decrypt the API key
-      const decryptedKey = encryptionServiceForIntegration.decrypt(notionIntegration.connectionData?.accessToken);
+      const decryptedKey = encryptionService.decrypt(notionIntegration.connectionData?.accessToken);
       return decryptedKey;
     } catch (error) {
       console.error('Error getting user Notion API key:', error);
