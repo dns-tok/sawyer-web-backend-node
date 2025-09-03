@@ -35,6 +35,9 @@ const userIntegrationSchema = new mongoose.Schema({
       // select: false
     },
     tokenExpiresAt: Date,
+    tokenType: String, // e.g., 'Bearer'
+    expiresIn: Number, // Token expiry in seconds
+    scope: String, // OAuth scopes granted
     
     // For API key integrations
     apiKeyId: {
@@ -46,6 +49,7 @@ const userIntegrationSchema = new mongoose.Schema({
     workspaceId: String, // For Notion workspace
     organizationId: String, // For various services
     teamId: String, // For Figma, Slack, etc.
+    resources: [mongoose.Schema.Types.Mixed], // For Jira accessible resources, etc.
     
     // OAuth app credentials (encrypted)
     clientId: String,
@@ -78,7 +82,10 @@ const userIntegrationSchema = new mongoose.Schema({
       message: String,
       timestamp: Date,
       code: String
-    }
+    },
+    // Store user info and additional metadata
+    userInfo: mongoose.Schema.Types.Mixed,
+    availableResources: [mongoose.Schema.Types.Mixed]
   },
   settings: {
     // User-configurable settings

@@ -10,7 +10,13 @@ class JiraService {
     /**
      * Generate Jira OAuth authorization URL
      */
-    generateAuthUrl(state, scopes = ['read:jira-work', 'read:jira-user', 'manage:jira-project']) {
+    generateAuthUrl(state, scopes = [
+        'read:jira-work',
+        'read:jira-user',
+        'manage:jira-project',
+        'read:board-scope:jira-software',
+        'read:project:jira'
+    ]) {
         const clientId = process.env.JIRA_CLIENT_ID;
         if (!clientId) {
             throw new Error('Jira client ID not configured');
@@ -20,7 +26,7 @@ class JiraService {
             audience: 'api.atlassian.com',
             client_id: clientId,
             scope: scopes.join(' '),
-            redirect_uri: process.env.JIRA_REDIRECT_URI || `${process.env.BACKEND_URL}/api/user-integrations/jira/callback`,
+            redirect_uri: process.env.JIRA_REDIRECT_URI || `${process.env.BACKEND_URL}/api/user-integrations/oauth/callback/jira`,
             state: state,
             response_type: 'code',
             prompt: 'consent'
@@ -34,15 +40,17 @@ class JiraService {
      */
     async exchangeCodeForToken(code, state) {
         try {
-            const response = await axios.post(this.tokenURL, {
+            const params = new URLSearchParams({
                 grant_type: 'authorization_code',
                 client_id: process.env.JIRA_CLIENT_ID,
                 client_secret: process.env.JIRA_CLIENT_SECRET,
                 code: code,
-                redirect_uri: process.env.JIRA_REDIRECT_URI || `${process.env.BACKEND_URL}/api/user-integrations/jira/callback`
-            }, {
+                redirect_uri: process.env.JIRA_REDIRECT_URI || `${process.env.BACKEND_URL}/api/user-integrations/oauth/callback/jira`
+            });
+
+            const response = await axios.post(this.tokenURL, params, {
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/x-www-form-urlencoded'
                 }
             });
 
@@ -64,14 +72,16 @@ class JiraService {
      */
     async refreshAccessToken(refreshToken) {
         try {
-            const response = await axios.post(this.tokenURL, {
+            const params = new URLSearchParams({
                 grant_type: 'refresh_token',
                 client_id: process.env.JIRA_CLIENT_ID,
                 client_secret: process.env.JIRA_CLIENT_SECRET,
                 refresh_token: refreshToken
-            }, {
+            });
+
+            const response = await axios.post(this.tokenURL, params, {
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/x-www-form-urlencoded'
                 }
             });
 
@@ -167,6 +177,8 @@ class JiraService {
                     'Accept': 'application/json'
                 }
             });
+
+            console.log("JIRA_RESPONSE ====> ",response);
 
             return response.data.values.map(project => ({
                 id: project.id,

@@ -49,7 +49,7 @@ const MCP_SERVERS = {
     oauth: {
       authUrl: 'https://auth.atlassian.com/authorize',
       tokenUrl: 'https://auth.atlassian.com/oauth/token',
-      scopes: ['read:jira-work', 'write:jira-work'],
+      scopes: ['read:jira-work', 'write:jira-work', 'read:jira-user'],
       clientIdRequired: true,
       clientSecretRequired: true
     },

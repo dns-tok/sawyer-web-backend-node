@@ -165,6 +165,26 @@ class OAuthService {
             'Notion-Version': '2022-06-28'
           }
         });
+      } else if (integrationId === 'jira') {
+        // Jira requires Basic auth with base64 encoded client credentials
+        const encoded = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+        
+        const tokenData = {
+          grant_type: 'authorization_code',
+          client_id: clientId,
+          client_secret: clientSecret,
+          code: code,
+          redirect_uri: redirectUri
+        };
+
+        console.log(`[${integrationId}] Making Jira token request`);
+        response = await axios.post(tokenUrl, tokenData, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${encoded}`
+          }
+        });
       } else if (integrationId === 'github') {
         // GitHub requires URL-encoded form data
         const tokenData = new URLSearchParams({
@@ -258,9 +278,39 @@ class OAuthService {
           version: mcpServer.version,
           lastSyncAt: new Date(),
           syncCount: 0,
-          errorCount: 0
+          errorCount: 0,
+          connectedAt: new Date()
         }
       };
+
+      // Integration-specific capabilities override
+      if (integrationId === 'jira') {
+        integrationData.capabilities = ['projects', 'boards', 'issues', 'sprints'].map(action => ({
+          action,
+          enabled: true,
+          lastUsed: null
+        }));
+      }
+
+      // Integration-specific data fetching
+      if (integrationId === 'jira') {
+        try {
+          // For Jira, fetch accessible resources and user info
+          const jiraService = require('./jira.service');
+          const resources = await jiraService.getAccessibleResources(tokenData.access_token);
+          
+          integrationData.connectionData.resources = resources;
+          
+          if (resources.length > 0) {
+            const userInfo = await jiraService.getCurrentUser(tokenData.access_token, resources[0].id);
+            integrationData.metadata.userInfo = userInfo;
+            integrationData.metadata.availableResources = resources;
+          }
+        } catch (error) {
+          console.warn(`[${integrationId}] Failed to fetch additional data:`, error.message);
+          // Continue without additional data
+        }
+      }
 
       // Update existing or create new integration
       const integration = await UserIntegration.findOneAndUpdate(
