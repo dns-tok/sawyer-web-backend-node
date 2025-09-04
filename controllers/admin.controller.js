@@ -7,8 +7,8 @@ const nodemailer = require("nodemailer");
 // Helper: check default admin credentials
 function isDefaultCredentials(email, password) {
   return (
-    email === (process.env.DEFAULT_ADMIN_EMAIL || "lojipajo@forexnews.bg") &&
-    password === (process.env.DEFAULT_ADMIN_PASSWORD || "admin123")
+    email === process.env.DEFAULT_ADMIN_EMAIL &&
+    password === process.env.DEFAULT_ADMIN_PASSWORD
   );
 }
 
@@ -80,7 +80,7 @@ class AdminController {
           res,
           {
             user: adminUser.toJSON(),
-            tokens: { accessToken: tokens.accessToken },
+            token: tokens.accessToken,
           },
           "First admin logged in successfully."
         );
@@ -137,7 +137,7 @@ class AdminController {
 
       return responseHandler.success(
         res,
-        { user: user.toJSON(), tokens: { accessToken: tokens.accessToken } },
+        { user: user.toJSON(), token: tokens.accessToken },
         "Login successful"
       );
     } catch (error) {
@@ -383,6 +383,27 @@ class AdminController {
         500,
         error.message || error
       );
+    }
+  }
+
+  async getAllUsers(req, res) {
+    try {
+      const { page = 1, limit = 10 } = req.query;
+
+      const query = { role: "user" };
+
+      const options = {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        sort: { createdAt: -1 },
+      };
+
+      const Users = await User.paginate(query, options);
+
+      return responseHandler.success(res, Users, "Users fetched successfully");
+    } catch (error) {
+      console.error(error);
+      return responseHandler.error(res, error.message);
     }
   }
 }

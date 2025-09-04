@@ -151,26 +151,6 @@ class UserController {
       );
     }
   }
-  async getAllUsers(req, res) {
-    try {
-      const { page = 1, limit = 10 } = req.query;
-
-      const query = { role: "user" };
-
-      const options = {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        sort: { createdAt: -1 },
-      };
-
-      const Users = await User.paginate(query, options);
-
-      return responseHandler.success(res, Users, "Users fetched successfully");
-    } catch (error) {
-      console.error(error);
-      return responseHandler.error(res, error.message);
-    }
-  }
 }
 
 module.exports = UserController;

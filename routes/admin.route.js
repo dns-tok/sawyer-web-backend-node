@@ -38,4 +38,6 @@ router.post(
   adminController.changeUserPassword
 );
 
+router.get("/user/get-users", adminAuth, adminController.getAllUsers);
+
 module.exports = router;
