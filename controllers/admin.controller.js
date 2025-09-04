@@ -3,10 +3,6 @@ const User = require("../models/User");
 const authService = require("../services/auth.service");
 const responseHandler = require("../utils/response.handler");
 const nodemailer = require("nodemailer");
-const {
-  FAKE_PASSWORD_HASH,
-  REFRESH_TOKEN_COOKIE_OPTIONS,
-} = require("./auth.controller");
 
 // Helper: check default admin credentials
 function isDefaultCredentials(email, password) {
@@ -15,6 +11,17 @@ function isDefaultCredentials(email, password) {
     password === (process.env.DEFAULT_ADMIN_PASSWORD || "admin123")
   );
 }
+
+const FAKE_PASSWORD_HASH = bcrypt.hashSync("fake_password_for_timing", 12);
+
+// Cookie options for refresh token
+const REFRESH_TOKEN_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  path: "/", // only send to refresh endpoint
+  maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days in ms
+};
 
 class AdminController {
   // Login

@@ -2,17 +2,13 @@ const User = require("../models/User");
 const authService = require("../services/auth.service");
 const responseHandler = require("../utils/response.handler");
 const nodemailer = require("nodemailer");
-const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 
 // Pre-compute a fake hash to mitigate timing attacks when user not found
-export const FAKE_PASSWORD_HASH = bcrypt.hashSync(
-  "fake_password_for_timing",
-  12
-);
+const FAKE_PASSWORD_HASH = bcrypt.hashSync("fake_password_for_timing", 12);
 
 // Cookie options for refresh token
-export const REFRESH_TOKEN_COOKIE_OPTIONS = {
+const REFRESH_TOKEN_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax",
