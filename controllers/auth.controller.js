@@ -6,10 +6,13 @@ const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 
 // Pre-compute a fake hash to mitigate timing attacks when user not found
-const FAKE_PASSWORD_HASH = bcrypt.hashSync("fake_password_for_timing", 12);
+export const FAKE_PASSWORD_HASH = bcrypt.hashSync(
+  "fake_password_for_timing",
+  12
+);
 
 // Cookie options for refresh token
-const REFRESH_TOKEN_COOKIE_OPTIONS = {
+export const REFRESH_TOKEN_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax",
@@ -263,7 +266,6 @@ class AuthController {
 
   // Refresh - rotates refresh token and issues new access + refresh
   async refresh(req, res) {
-    console.log("COOKIES", req.cookies);
     try {
       // Prefer cookie for refresh token, fall back to body
       const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;

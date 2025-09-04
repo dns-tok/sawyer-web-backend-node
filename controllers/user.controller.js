@@ -27,7 +27,6 @@ class UserController {
   }
 
   async updateProfile(req, res) {
-    console.log("HELLO", req.body);
     try {
       const { name, preferences, avatar } = req.body;
       const userId = req.user._id;
@@ -150,6 +149,26 @@ class UserController {
         500,
         error
       );
+    }
+  }
+  async getAllUsers(req, res) {
+    try {
+      const { page = 1, limit = 10 } = req.query;
+
+      const query = { role: "user" };
+
+      const options = {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        sort: { createdAt: -1 },
+      };
+
+      const Users = await User.paginate(query, options);
+
+      return responseHandler.success(res, Users, "Users fetched successfully");
+    } catch (error) {
+      console.error(error);
+      return responseHandler.error(res, error.message);
     }
   }
 }
