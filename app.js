@@ -11,6 +11,7 @@ const userRoutes = require("./routes/user.route");
 const apiKeysRoutes = require("./routes/apiKeys.route");
 const projectRoutes = require("./routes/project.route");
 const uploadRoutes = require("./routes/upload.route");
+const adminRoutes = require("./routes/admin.route");
 // const mcpRoutes = require('./routes/mcp');
 const chatRoutes = require('./routes/chat.route');
 const cookieParser = require("cookie-parser");
@@ -106,6 +107,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/projects", projectRoutes);
+app.use("/api/admin", adminRoutes);
+
 // app.use('/api/notion', notionRoutes);
 app.use("/api/api-keys", apiKeysRoutes);
 // app.use('/api/mcp', mcpRoutes);

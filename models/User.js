@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const mongoosePaginate = require("mongoose-paginate-v2");
 
 const userSchema = new mongoose.Schema(
   {
@@ -176,5 +177,7 @@ userSchema.methods.removeAllRefreshTokens = function () {
   this.tokenVersion = (this.tokenVersion || 0) + 1;
   return this.save();
 };
+
+userSchema.plugin(mongoosePaginate);
 
 module.exports = mongoose.model("User", userSchema);

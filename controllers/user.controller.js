@@ -27,7 +27,6 @@ class UserController {
   }
 
   async updateProfile(req, res) {
-    console.log("HELLO", req.body);
     try {
       const { name, preferences, avatar } = req.body;
       const userId = req.user._id;

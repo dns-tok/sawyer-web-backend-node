@@ -16,15 +16,6 @@ const AuthController = require("../controllers/auth.controller");
 const router = express.Router();
 const authController = new AuthController();
 
-/**
- * IMPORTANT:
- * - Make sure your top-level app uses cookie-parser:
- *     const cookieParser = require('cookie-parser');
- *     app.use(cookieParser());
- */
-
-// ---------------------
-// Rate limiters (sensible production defaults)
 // ---------------------
 const createLimiter = (opts) =>
   rateLimit({
@@ -45,9 +36,14 @@ const registerLimiter = createLimiter({
 });
 
 const loginLimiter = createLimiter({
-  // windowMs: 15 * 60 * 1000,
-  // max: 5,
-  // message: "Too many login attempts, please try again later.",
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500000, // limit each IP to 5 login attempts per windowMs
+  message: {
+    status: "error",
+    message: "Too many login attempts, please try again later.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 const forgotPasswordLimiter = createLimiter({

@@ -3,18 +3,6 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const responseHandler = require("../utils/response.handler");
 
-/**
- * Auth middleware improvements:
- * - Robust parsing of Authorization header (case-insensitive).
- * - Clear handling of TokenExpiredError with a code.
- * - Validate tokenVersion: access tokens include tokenVersion; if it doesn't match DB, token is invalid.
- * - Check account active/locked state.
- *
- * REQUIREMENTS:
- * - Access tokens must be signed with process.env.JWT_SECRET (same as AuthService).
- * - Access tokens must include { userId, tokenVersion } in payload (as in the provided AuthService).
- */
-
 const JWT_SECRET = process.env.JWT_SECRET;
 
 function extractBearerToken(req) {
@@ -82,7 +70,7 @@ const auth = async (req, res, next) => {
       });
     }
 
-    const googleAuth = async (req, res, next) => {};
+    // const googleAuth = async (req, res, next) => {};
 
     // tokenVersion check - guards against password resets / logoutAll scenarios
     // decoded.tokenVersion may be undefined — be conservative
