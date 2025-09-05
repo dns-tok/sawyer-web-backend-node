@@ -308,32 +308,33 @@ class AdminController {
 
   // Change password (authenticated)
   async changePassword(req, res) {
-    const { currentPassword, newPassword } = req.body;
-    try {
-      if (!currentPassword || !newPassword)
-        return responseHandler.error(res, "Both passwords required", 400);
+    const { newPassword } = req.body;
 
-      if (currentPassword === newPassword)
+    try {
+      if (!newPassword)
+        return responseHandler.error(res, "New password is required", 400);
+
+      const admin = await User.findById(req.user._id).select("+password");
+      if (!admin) return responseHandler.error(res, "Admin not found", 404);
+
+      // Prevent using the same password
+      if (admin.password && (await admin.comparePassword(newPassword))) {
         return responseHandler.error(
           res,
-          "currentPassword and newPassword can not be same",
+          "New password cannot be the same as current password",
           400
         );
+      }
 
-      const user = await User.findById(req.user._id).select("+password");
-      if (!user) return responseHandler.error(res, "User not found", 404);
+      admin.password = newPassword;
+      await admin.removeAllRefreshTokens();
+      await admin.save();
 
-      const valid = await user.comparePassword(currentPassword);
-      if (!valid)
-        return responseHandler.error(res, "Current password incorrect", 400);
-
-      user.password = newPassword;
-      await user.removeAllRefreshTokens();
-      await user.save();
-
+      // Clear refresh token cookie
       res.clearCookie("refreshToken", {
         path: REFRESH_TOKEN_COOKIE_OPTIONS.path,
       });
+
       return responseHandler.success(
         res,
         null,
