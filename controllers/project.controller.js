@@ -373,6 +373,201 @@ class ProjectController {
         }
     }
 
+    // ===========================================
+    // PROMPT SUGGESTIONS METHODS
+    // ===========================================
+
+    async getPromptSuggestions(req, res) {
+        try {
+            const { id: projectId } = req.params;
+            const userId = req.user._id;
+
+            // Find and validate project
+            const project = await Project.findOne({
+                _id: projectId,
+                userId,
+                isDeleted: false
+            });
+
+            if (!project) {
+                return responseHandler.notFound(res, 'Project not found');
+            }
+
+            // Generate context-aware suggestions based on project data
+            const suggestions = this._generateContextualSuggestions(project);
+
+            return responseHandler.success(res, {
+                suggestions,
+                projectId,
+                projectName: project.name,
+                totalSuggestions: suggestions.length
+            }, 'Prompt suggestions retrieved successfully');
+
+        } catch (error) {
+            console.error('Get prompt suggestions error:', error);
+            return responseHandler.error(res, 'Failed to get prompt suggestions', 500, error);
+        }
+    }
+
+    async generatePromptSuggestions(req, res) {
+        try {
+            const { id: projectId } = req.params;
+            const { context, category } = req.body;
+            const userId = req.user._id;
+
+            // Find and validate project
+            const project = await Project.findOne({
+                _id: projectId,
+                userId,
+                isDeleted: false
+            });
+
+            if (!project) {
+                return responseHandler.notFound(res, 'Project not found');
+            }
+
+            // Generate dynamic suggestions based on context and category
+            const suggestions = this._generateDynamicSuggestions(project, context, category);
+
+            return responseHandler.success(res, {
+                suggestions,
+                projectId,
+                projectName: project.name,
+                category,
+                context,
+                totalSuggestions: suggestions.length
+            }, 'Dynamic prompt suggestions generated successfully');
+
+        } catch (error) {
+            console.error('Generate prompt suggestions error:', error);
+            return responseHandler.error(res, 'Failed to generate prompt suggestions', 500, error);
+        }
+    }
+
+    // ===========================================
+    // PRIVATE HELPER METHODS FOR PROMPT SUGGESTIONS
+    // ===========================================
+
+    _generateContextualSuggestions(project) {
+        const suggestions = [];
+        const projectName = project.name;
+        const hasDescription = project.description && project.description.trim().length > 0;
+        const hasAttachments = project.attachments && project.attachments.length > 0;
+        const hasIntegrations = project.mcpResources && 
+            (project.mcpResources.notion?.enabled || 
+             project.mcpResources.github?.enabled || 
+             project.mcpResources.jira?.enabled);
+
+        // Base analysis suggestions
+        suggestions.push(
+            `Analyze the ${projectName} project requirements and provide a detailed implementation roadmap`,
+            `Review the ${projectName} project structure and suggest architectural improvements`,
+            `Identify potential risks and challenges in the ${projectName} project`
+        );
+
+        // Context-specific suggestions based on project data
+        if (hasDescription) {
+            suggestions.push(
+                `Based on the project description, break down ${projectName} into manageable development phases`,
+                `Suggest best practices and coding standards for the ${projectName} project`
+            );
+        }
+
+        if (hasAttachments) {
+            suggestions.push(
+                `Analyze the uploaded documents and extract key requirements for ${projectName}`,
+                `Generate a technical specification based on the project documentation`
+            );
+        }
+
+        if (hasIntegrations) {
+            if (project.mcpResources.notion?.enabled) {
+                suggestions.push(
+                    `Sync project requirements with Notion and create a development timeline`,
+                    `Generate project documentation in Notion based on current progress`
+                );
+            }
+            
+            if (project.mcpResources.github?.enabled) {
+                suggestions.push(
+                    `Review GitHub repository structure and suggest code organization improvements`,
+                    `Analyze recent commits and provide code quality feedback`,
+                    `Generate GitHub issues based on project requirements`
+                );
+            }
+            
+            if (project.mcpResources.jira?.enabled) {
+                suggestions.push(
+                    `Create Jira tickets for upcoming development tasks`,
+                    `Analyze current Jira issues and suggest prioritization strategy`
+                );
+            }
+        }
+
+        // Generic productive suggestions
+        suggestions.push(
+            `Create a comprehensive testing strategy for ${projectName}`,
+            `Generate API documentation for the ${projectName} endpoints`,
+            `Suggest performance optimization techniques for ${projectName}`,
+            `Create a deployment checklist for ${projectName}`,
+            `Design error handling and logging strategies for ${projectName}`
+        );
+
+        // Randomize and limit suggestions
+        return this._shuffleArray(suggestions).slice(0, 8);
+    }
+
+    _generateDynamicSuggestions(project, context, category) {
+        const projectName = project.name;
+        const baseSuggestions = {
+            analysis: [
+                `Perform a deep technical analysis of ${projectName} focusing on ${context || 'architecture'}`,
+                `Evaluate the current ${projectName} implementation and identify bottlenecks`,
+                `Conduct a security audit for the ${projectName} project`,
+                `Analyze user experience and interface design for ${projectName}`
+            ],
+            implementation: [
+                `Implement ${context || 'core functionality'} for the ${projectName} project`,
+                `Create modular components for ${projectName} with best practices`,
+                `Set up CI/CD pipeline for ${projectName} deployment`,
+                `Implement authentication and authorization for ${projectName}`
+            ],
+            testing: [
+                `Design comprehensive unit tests for ${projectName} ${context || 'components'}`,
+                `Create integration test suite for ${projectName}`,
+                `Implement end-to-end testing strategy for ${projectName}`,
+                `Set up performance testing for ${projectName} critical paths`
+            ],
+            documentation: [
+                `Generate comprehensive API documentation for ${projectName}`,
+                `Create user guide and tutorials for ${projectName}`,
+                `Document deployment and maintenance procedures for ${projectName}`,
+                `Write technical specifications for ${projectName} ${context || 'features'}`
+            ],
+            optimization: [
+                `Optimize ${projectName} for better performance and scalability`,
+                `Implement caching strategies for ${projectName}`,
+                `Refactor ${projectName} codebase for maintainability`,
+                `Optimize database queries and data structures in ${projectName}`
+            ]
+        };
+
+        const suggestions = category && baseSuggestions[category] 
+            ? baseSuggestions[category] 
+            : Object.values(baseSuggestions).flat();
+
+        return this._shuffleArray(suggestions).slice(0, 6);
+    }
+
+    _shuffleArray(array) {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    }
+
 }
 
 module.exports = ProjectController;

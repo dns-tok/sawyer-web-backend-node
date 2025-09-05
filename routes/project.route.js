@@ -254,4 +254,38 @@ router.get('/available-resources/:service',
   projectController.getAvailableResources
 );
 
+// ===========================================
+// PROMPT SUGGESTIONS ENDPOINTS
+// ===========================================
+
+/**
+ * @route   GET /api/projects/:id/prompt-suggestions
+ * @desc    Get prompt suggestions for a project
+ * @access  Private
+ */
+router.get('/:id/prompt-suggestions', [
+  auth,
+  param('id').isMongoId().withMessage('Invalid project ID'),
+  validateRequest
+], projectController.getPromptSuggestions.bind(projectController));
+
+/**
+ * @route   POST /api/projects/:id/prompt-suggestions/generate
+ * @desc    Generate dynamic prompt suggestions for a project
+ * @access  Private
+ */
+router.post('/:id/prompt-suggestions/generate', [
+  auth,
+  param('id').isMongoId().withMessage('Invalid project ID'),
+  body('context')
+    .optional()
+    .isString()
+    .withMessage('Context must be a string'),
+  body('category')
+    .optional()
+    .isIn(['analysis', 'implementation', 'testing', 'documentation', 'optimization'])
+    .withMessage('Invalid category'),
+  validateRequest
+], projectController.generatePromptSuggestions.bind(projectController));
+
 module.exports = router;
