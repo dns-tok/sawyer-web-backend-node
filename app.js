@@ -12,7 +12,7 @@ const apiKeysRoutes = require("./routes/apiKeys.route");
 const projectRoutes = require("./routes/project.route");
 const uploadRoutes = require("./routes/upload.route");
 // const mcpRoutes = require('./routes/mcp');
-// const chatRoutes = require('./routes/chat.route');
+const chatRoutes = require('./routes/chat.route');
 const cookieParser = require("cookie-parser");
 
 const errorHandler = require("./middleware/errorHandler");
@@ -109,7 +109,7 @@ app.use("/api/projects", projectRoutes);
 // app.use('/api/notion', notionRoutes);
 app.use("/api/api-keys", apiKeysRoutes);
 // app.use('/api/mcp', mcpRoutes);
-// app.use('/api/chat', chatRoutes);
+app.use('/api/chat', chatRoutes);
 app.use("/api/integrations", require("./routes/integrations.route"));
 app.use("/api/user-integrations", require("./routes/userIntegrations.route"));
 

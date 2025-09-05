@@ -7,6 +7,127 @@ const openaiService = require('../services/openai.service');
 const agentService = require('../services/agent.service');
 const { body, validationResult } = require('express-validator');
 
+
+
+
+
+// Stream messages to a chat (for real-time responses)
+router.post('/stream', [
+  auth,
+  body('message').notEmpty().trim(),
+], async (req, res) => {
+  // Set CORS headers first, before any other processing
+  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:5173');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, X-Requested-With');
+  
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { message } = req.body;
+    const user = req.user;
+
+    // Set up Server-Sent Events headers (CORS already set above)
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no' // Disable nginx buffering for streaming
+    });
+
+    try {
+      // Get user's OpenAI API key
+      const ApiKey = require('../models/ApiKey');
+      const encryptionService = require('../services/encryption.service');
+      
+      const apiKeyDoc = await ApiKey.findOne({ 
+        userId: user._id, 
+        provider: 'openai', 
+        isActive: true 
+      }).select('+encryptedApiKey');
+
+      if (!apiKeyDoc) {
+        res.write(`data: ${JSON.stringify({
+          type: 'error',
+          message: 'No OpenAI API key found. Please add your OpenAI API key first.'
+        })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        return res.end();
+      }
+
+      // Decrypt the API key
+      const openaiApiKey = encryptionService.decrypt(apiKeyDoc.encryptedApiKey);
+
+      // Use OpenAI API directly for streaming
+      const { ChatOpenAI } = require('@langchain/openai');
+      
+      const model = new ChatOpenAI({
+        openAIApiKey: openaiApiKey,
+        modelName: 'gpt-3.5-turbo',
+        streaming: true,
+        temperature: 0.7,
+      });
+
+      // System prompt for Sawyer
+      const systemPrompt = `You are Sawyer, an intelligent AI assistant designed to help users with their projects and tasks. You are knowledgeable, helpful, and always aim to provide clear and actionable responses. You have access to various integrations and tools to assist users in their workflow. Be concise but thorough in your responses.`;
+
+      // Stream the response
+      const stream = await model.stream([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: message }
+      ]);
+
+      for await (const chunk of stream) {
+        const content = chunk.content;
+        if (content) {
+          res.write(`data: ${JSON.stringify({
+            type: 'token',
+            content: content
+          })}\n\n`);
+        }
+      }
+
+    } catch (streamError) {
+      console.error('Streaming error:', streamError);
+      res.write(`data: ${JSON.stringify({
+        type: 'error',
+        message: 'Failed to generate streaming response'
+      })}\n\n`);
+    }
+
+    res.write('data: [DONE]\n\n');
+    res.end();
+
+  } catch (error) {
+    console.error('Error in streaming endpoint:', error);
+    
+    // Handle authentication errors
+    if (error.message && error.message.includes('token')) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Authentication failed'
+      });
+    }
+    
+    if (!res.headersSent) {
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to process streaming request'
+      });
+    }
+  }
+});
+
+
+
 // Get all chats for the authenticated user
 router.get('/', auth, async (req, res) => {
   try {
